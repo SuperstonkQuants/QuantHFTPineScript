@@ -4,16 +4,16 @@ strategy(title="LaTriple-X 30m BTCUSD (by Tathal)", shorttitle="LTXBTC30", forma
 startDate = input(title="Start Date", type=input.integer,
      defval=1, minval=1, maxval=31)
 startMonth = input(title="Start Month", type=input.integer,
-     defval=7, minval=1, maxval=12)
+     defval=1, minval=1, maxval=12)
 startYear = input(title="Start Year", type=input.integer,
-     defval=2021, minval=1800, maxval=2100)
+     defval=2020, minval=1800, maxval=2100)
 
 endDate = input(title="End Date", type=input.integer,
-     defval=2, minval=1, maxval=31)
+     defval=1, minval=1, maxval=31)
 endMonth = input(title="End Month", type=input.integer,
-     defval=7, minval=1, maxval=12)
+     defval=1, minval=1, maxval=12)
 endYear = input(title="End Year", type=input.integer,
-     defval=2021, minval=1800, maxval=2100)
+     defval=2030, minval=1800, maxval=2100)
 
 // STEP 2:
 // Look if the close time of the current bar
@@ -33,15 +33,7 @@ normalize(_src, _min, _max) =>
     _historicMax := max(nz(_src, _historicMax), _historicMax)
     _min + (_max - _min) * (_src - _historicMin) / max(_historicMax - _historicMin, 10e-10)
 
-// ————— When the scale of the signal to rescale is known (bounded).
-rescale(_src, _oldMin, _oldMax, _newMin, _newMax) =>
-    // Rescales series with known min/max.
-    // _src            : series to rescale.
-    // _oldMin, _oldMax: min/max values of series to rescale.
-    // _newMin, _newMin: min/max values of rescaled series.
-    _newMin + (_newMax - _newMin) * (_src - _oldMin) / max(_oldMax - _oldMin, 10e-10)
-
-Length = input(12, minval=1, title="t3 Average length")
+Length = input(1, minval=1, title="t3 Average length")
 xPrice = close
 xe1 = ema(xPrice, Length)
 xe2 = ema(xe1, Length)
@@ -66,8 +58,8 @@ t3defplot = if high > t30d
 else
     false
 
-period1 = input(12, minval=1, title="DI+ Length")
-period2 = input(10, minval=1, title="DI- Length")
+period1 = input(1, minval=1, title="DI+ Length")
+period2 = input(144, minval=1, title="DI- Length")
 up = change(high)
 down = -change(low)
 plusDM = na(up) ? na : (up > down and up > 0 ? up : 0)
@@ -116,16 +108,16 @@ f_normGradientColor(_series, _crossesZero, _colorNormLen, _dnColor, _upColor) =>
 out = 10000 * change(ema(ema(ema(log(close), length), length), length))
 
 
-t30dema = ema(t30d, input(144, title="T30D EMA Smoothing"))
-larsisema = ema(normalize(LaRSI, close * (input(0.95, title="Minimum Bound LaRSI")), close * (input(1.05, title="Maximum Bound LaRSI"))),input(5, title="LaRSI EMA Length"))
-sumema = ema(normalize(sum, close * (input(0.95, title="Minimum Bound sum")), close * (input(1.05, title="Maximum Bound sum"))),input(5, title="sum EMA Length"))
-outema = ema(normalize(out, close * (input(0.95, title="Minimum Bound out")), close * (input(1.05, title="Maximum Bound out"))),input(5, title="out EMA Length"))
-outhigher= ema(normalize(out, close * (input(0.95, title="Minimum Bound out higher")), close * (input(1.05, title="Maximum Bound out higher"))),input(5, title="out EMA Length higher"))
-outlower = ema(normalize(out, close * (input(0.95, title="Minimum Bound out lower")), close * (input(1.05, title="Maximum Bound out lower"))),input(5, title="out EMA Length lower"))
+t30dema = ema(t30d, input(1, title="T30D EMA Smoothing"))
+larsisema = ema(normalize(LaRSI, close * (input(0.99, title="Minimum Bound LaRSI")), close * (input(1.01, title="Maximum Bound LaRSI"))),input(1, title="LaRSI EMA Length"))
+sumema = ema(normalize(sum, close * (input(0.99, title="Minimum Bound sum")), close * (input(1.01, title="Maximum Bound sum"))),input(1, title="sum EMA Length"))
+outema = ema(normalize(out, close * (input(0.99, title="Minimum Bound out")), close * (input(1.01, title="Maximum Bound out"))),input(1, title="out EMA Length"))
+outhigher= ema(normalize(out, close * (input(0.99, title="Minimum Bound out higher")), close * (input(1.01, title="Maximum Bound out higher"))),input(5, title="out EMA Length higher"))
+outlower = ema(normalize(out, close * (input(0.99, title="Minimum Bound out lower")), close * (input(1.01, title="Maximum Bound out lower"))),input(4, title="out EMA Length lower"))
 
 long1 = crossover(outhigher, outlower)
 long2 = plus > minus
-long3 = crossunder(close, normalize(outhigher, close * (input(0.95, title="Minimum Bound Out D")), close * (input(1.05, title="Maximum Bound Out D"))))
+long3 = crossunder(close, normalize(outhigher, close * (input(0.99, title="Minimum Bound Out D")), close * (input(1.01, title="Maximum Bound Out D"))))
 long5 = crossunder(close, larsisema)
 long4 = crossunder(close, min(t30dema, sma(high, input(2, title="high EMA Length"))))
 long6 = crossover(close, sumema)
@@ -145,37 +137,13 @@ if (inDateRange)
     strategy.entry("short", false, when = short)
 
 
-stopPer = input(4.0, title='Stop Loss %', type=input.float) / 100
-takePer = input(13.0, title='Take Profit %', type=input.float) / 100
+stopPer = input(-1.0, title='Stop Loss %', type=input.float) / 100
+takePer = input(5.0, title='Take Profit %', type=input.float) / 100
 
 // Determine where you've entered and in what direction
 longStop = strategy.position_avg_price * (1 - stopPer)
 shortStop = strategy.position_avg_price * (1 - stopPer)
 longTake = strategy.position_avg_price * (1 + takePer)
-
-
-
-
-clong = if strategy.position_size > 0 and cancel == true
-    true
-else
-    false
-
-
-
-bgcolor(color=long ? color.new(color.purple, 90) : clong and not long ? color.new(color.yellow, 90) : short ? color.new(color.blue, 90) : na )
-
-t = plot(t30dema, color=color.new(color.green, 0))
-o1 = plot(outlower, color=color.new(color.purple, 0))
-o2 = plot(outhigher, color=color.new(color.yellow, 0))
-o3 = plot(outema, color=color.new(color.orange, 0))
-sumline = plot(sumema, color=color.new(color.white, 10))
-l = plot(larsisema, color=color.new(color.red, 10))
-c = plot(series=high, color=color.new(color.blue, 0))
-fill(t, c, color.new(color.white, 90))
-fill(o2, o1, color.new(color.blue, 70))
-fill(l, o2, color.new(color.purple, 70))
-
 
 if strategy.position_size > 0 and cancel == true
     strategy.exit(id="Close Long", stop=longStop, limit=longTake)
